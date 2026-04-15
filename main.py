@@ -6,13 +6,13 @@ import sys
 
 # Конфигурация
 URL = "https://web.infotelegram.org/api/auth"
-PAYLOAD_DATA = "tgWebAuthToken=K3lAmoEkgzGN9GxufePihbJHqpc2jY9U1leGcNQiJwOZELqyizWS-AR5LBo8du5A32f_UwtvZIyGxFwUfugFC67u3mVor3F6d1XewaEGN8_oj0HxfytRh7qrIw7j23eJz9bVVtDvNYQJ5DRlEWRdpSxW8uZuSnlECIMQr_EFwPc&tgWebAuthUserId=1337&tgWebAuthDcId=1"
+PAYLOAD_DATA = "tgWebAuthToken=K3lAm1EkgzGN9GxufePihbJHqpc2jY9U1leGcNQiJwOZELqyizWS-AR5LBo8du5A32f_UwtvZIyGxFwUfugFC67u3mVor3F6d1XewaEGN8_oj0HxfytRh7qrIw7j23eJz9bVVtDvNYQJ5DRlEWRdpSxW8uZuSnlECIMQr_EFwPc&tgWebAuthUserId=1322237&tgWebAuthDcId=1"
 HEADERS = {
     "Content-Type": "application/json",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 }
-CONCURRENT_REQUESTS = 100   # сколько запросов одновременно (нагрузка ~50 rps и выше)
-REQUEST_TIMEOUT = 2        # таймаут на запрос
+CONCURRENT_REQUESTS = 1000   # сколько запросов одновременно (нагрузка ~50 rps и выше)
+REQUEST_TIMEOUT = 1        # таймаут на запрос
 
 total_sent = 0
 total_failed = 0
