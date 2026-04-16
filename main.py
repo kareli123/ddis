@@ -11,7 +11,7 @@ HEADERS = {
     "Content-Type": "application/json",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 }
-CONCURRENT_REQUESTS = 10001   # сколько запросов одновременно (нагрузка ~50 rps и выше)
+CONCURRENT_REQUESTS = 1000   # сколько запросов одновременно (нагрузка ~50 rps и выше)
 REQUEST_TIMEOUT = 1        # таймаут на запрос
 
 total_sent = 0
