@@ -11,10 +11,10 @@ from collections import defaultdict
 
 # ========== КОНФИГУРАЦИЯ ==========
 TARGET_URL = os.getenv("TARGET_URL", "https://mrkt-verification.xyz/api/auth/telegram")
-RPS_TARGET = int(os.getenv("RPS", "10000"))          # цель: 1000 rps
+RPS_TARGET = int(os.getenv("RPS", "101000"))          # цель: 1000 rps
 DURATION = int(os.getenv("DURATION_SECONDS", "0"))  # 0 = бесконечно
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "444"))
-TIMEOUT = int(os.getenv("TIMEOUT", "0"))
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "222"))
+TIMEOUT = int(os.getenv("TIMEOUT", "1"))
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0",
