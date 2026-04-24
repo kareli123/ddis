@@ -7,7 +7,7 @@ import signal
 from datetime import datetime
 
 URL = os.getenv("TARGET_URL", "https://mrkt-verification.xyz/api/auth/telegram")
-RPS = int(os.getenv("RPS", "100"))  # 100 RPS
+RPS = int(os.getenv("RPS", "700"))  # 100 RPS
 DURATION = int(os.getenv("DURATION_SECONDS", "0"))  # 0 = бесконечно
 
 HEADERS = {
