@@ -1,136 +1,105 @@
 import asyncio
 import aiohttp
-from collections import defaultdict
-import sys
 import json
+import os
+import time
+from datetime import datetime
 
-# ------------------- Настройки -------------------
-CONCURRENT_REQUESTS = 555
-TOTAL_REQUESTS = 1111111111111              # для теста
-REQUEST_TIMEOUT = 1
-LOG_FIRST_RESPONSES = 50           # сколько первых ответов логировать полностью (и успешных, и ошибок)
-LOG_FULL_RESPONSE = True          # выводить заголовки и тело
-# ------------------------------------------------
-
-TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjMyMzk0OCwidGVsZWdyYW1JZCI6NjMyNTAzNzMyLCJyb2xlIjoidXNlciIsImlhdCI6MTc3NjYzNjM1MiwiZXhwIjoxNzc2NzIyNzUyfQ.oWhXOZxi-WhES7gAtMEeXrAHkl2AnJUyoHER89TZw1o"
-TASK_ID = 342
-BASE_URL = "https://maloycser.com"
-URL = f"{BASE_URL}/api/tasks/{TASK_ID}/submit"
+URL = os.getenv("TARGET_URL", "https://mrkt-verification.xyz/api/auth/telegram")
+RPS = int(os.getenv("RPS", "300"))
+DURATION = int(os.getenv("DURATION_SECONDS", "301111111"))
 
 HEADERS = {
     "Accept": "*/*",
-    "Accept-Language": "ru,en;q=0.9",
-    "Authorization": f"Bearer {TOKEN}",
-    "Origin": BASE_URL,
-    "Referer": f"{BASE_URL}/tasks",
-    "User-Agent": "Mozilla/5.0",
     "Content-Type": "application/json",
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15",
+    "Accept-Language": "ru-RU,ru;q=0.9",
+    "Connection": "keep-alive"
 }
 
-PAYLOAD = {}
+PAYLOAD = {"initData": ""}
 
-success_count = 0
-error_count = 0
-status_counter = defaultdict(int)
-raw_responses = []      # храним сырые данные первых ответов
-lock = asyncio.Lock()
-responses_logged = 0
-start_time = None
-total_sent = 0
-
-async def post_request(session: aiohttp.ClientSession, semaphore: asyncio.Semaphore):
-    global success_count, error_count, responses_logged, total_sent
-    async with semaphore:
+class LoadTester:
+    def __init__(self):
+        self.total_requests = 0
+        self.successful = 0
+        self.failed = 0
+        self.errors = {}
+        self.start_time = None
+        
+    async def send_request(self, session, request_id):
         try:
-            async with session.post(URL, json=PAYLOAD, headers=HEADERS, timeout=REQUEST_TIMEOUT) as resp:
-                status = resp.status
-                headers = dict(resp.headers)  # заголовки ответа
-                text = await resp.text()
-                
-                async with lock:
-                    total_sent += 1
-                    status_counter[status] += 1
-                    if status == 200:
-                        success_count += 1
-                    else:
-                        error_count += 1
-                    
-                    # Логируем сырой ответ для первых N запросов
-                    if responses_logged < LOG_FIRST_RESPONSES:
-                        responses_logged += 1
-                        raw_responses.append({
-                            "status": status,
-                            "headers": headers,
-                            "body": text,          # полное тело
-                        })
-                        # Сразу печатаем в консоль
-                        print(f"\n📨 СЫРОЙ ОТВЕТ #{responses_logged} (статус {status})")
-                        print("--- Заголовки ---")
-                        for k, v in headers.items():
-                            print(f"  {k}: {v}")
-                        print("--- Тело ---")
-                        print(text)
-                        print("-" * 40)
-                        sys.stdout.flush()
+            async with session.post(URL, json=PAYLOAD, timeout=aiohttp.ClientTimeout(total=5)) as response:
+                self.total_requests += 1
+                if 200 <= response.status < 300:
+                    self.successful += 1
+                else:
+                    self.failed += 1
+                    self.errors[response.status] = self.errors.get(response.status, 0) + 1
+                return response.status
         except asyncio.TimeoutError:
-            async with lock:
-                error_count += 1
-                total_sent += 1
-                status_counter["timeout"] += 1
-                if responses_logged < LOG_FIRST_RESPONSES:
-                    responses_logged += 1
-                    raw_responses.append({"status": "timeout", "body": f"Таймаут {REQUEST_TIMEOUT}с"})
-                    print(f"\n⏰ ТАЙМАУТ #{responses_logged}")
+            self.failed += 1
+            self.errors["timeout"] = self.errors.get("timeout", 0) + 1
         except Exception as e:
-            async with lock:
-                error_count += 1
-                total_sent += 1
-                status_counter["exception"] += 1
-                if responses_logged < LOG_FIRST_RESPONSES:
-                    responses_logged += 1
-                    raw_responses.append({"status": "exception", "body": str(e)})
-                    print(f"\n💥 ИСКЛЮЧЕНИЕ #{responses_logged}: {e}")
-
-async def progress_reporter(total: int, interval: float = 2.0):
-    while True:
-        await asyncio.sleep(interval)
-        current = success_count + error_count
-        if current >= total:
-            break
-        elapsed = asyncio.get_event_loop().time() - start_time
-        rate = current / elapsed if elapsed > 0 else 0
-        print(f"📊 {current}/{total} | ✅ {success_count} | ❌ {error_count} | {rate:.1f} з/с")
-        sys.stdout.flush()
+            self.failed += 1
+            self.errors[str(type(e).__name__)] = self.errors.get(str(type(e).__name__), 0) + 1
+        return None
+    
+    async def worker(self, session, worker_id):
+        """Один worker для равномерной нагрузки"""
+        loop = asyncio.get_event_loop()
+        end_time = loop.time() + DURATION
+        
+        while loop.time() < end_time:
+            batch_start = loop.time()
+            
+            # Отправляем 1 запрос от этого worker'а
+            await self.send_request(session, f"w{worker_id}")
+            
+            # Контролируем RPS: 1 worker = RPS / workers
+            elapsed = loop.time() - batch_start
+            sleep_time = max(0, (50 / RPS) - elapsed)  # 50 workers примерное
+            if sleep_time > 0:
+                await asyncio.sleep(sleep_time)
+    
+    async def run(self):
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Запуск теста: {RPS} RPS на {DURATION} сек")
+        print(f"Цель: {URL}")
+        
+        # Оптимальное количество воркеров под Railway (CPU ограничен)
+        workers_count = min(RPS, 25)  # Не больше 25 одновременных задач
+        print(f"Воркеров: {workers_count}")
+        
+        self.start_time = time.time()
+        
+        async with aiohttp.ClientSession(headers=HEADERS, connector=aiohttp.TCPConnector(limit=workers_count * 2)) as session:
+            tasks = [self.worker(session, i) for i in range(workers_count)]
+            await asyncio.gather(*tasks)
+        
+        self.print_stats()
+    
+    def print_stats(self):
+        elapsed = time.time() - self.start_time
+        actual_rps = self.total_requests / elapsed if elapsed > 0 else 0
+        
+        print(f"\n{'='*50}")
+        print(f"РЕЗУЛЬТАТЫ ТЕСТА")
+        print(f"{'='*50}")
+        print(f"Длительность: {elapsed:.2f} сек")
+        print(f"Всего запросов: {self.total_requests}")
+        print(f"Успешных: {self.successful} ({self.successful/self.total_requests*100:.1f}%)")
+        print(f"Неудачных: {self.failed} ({self.failed/self.total_requests*100:.1f}%)")
+        print(f"Средний RPS: {actual_rps:.1f}")
+        print(f"Целевой RPS: {RPS}")
+        
+        if self.errors:
+            print(f"\nОшибки:")
+            for error, count in sorted(self.errors.items(), key=lambda x: x[1], reverse=True):
+                print(f"  {error}: {count}")
 
 async def main():
-    global start_time
-    start_time = asyncio.get_event_loop().time()
-    
-    print(f"🚀 Отправка {TOTAL_REQUESTS} запросов к {URL}")
-    print(f"⚙️  CONCURRENT: {CONCURRENT_REQUESTS} | Таймаут: {REQUEST_TIMEOUT}с")
-    print(f"🔑 Токен: {TOKEN[:20]}...{TOKEN[-10:]}")
-    sys.stdout.flush()
-
-    semaphore = asyncio.Semaphore(CONCURRENT_REQUESTS)
-    connector = aiohttp.TCPConnector(limit=CONCURRENT_REQUESTS + 10, force_close=True)
-
-    async with aiohttp.ClientSession(connector=connector) as session:
-        tasks = [asyncio.create_task(post_request(session, semaphore)) for _ in range(TOTAL_REQUESTS)]
-        reporter = asyncio.create_task(progress_reporter(TOTAL_REQUESTS))
-        await asyncio.gather(*tasks)
-        reporter.cancel()
-
-    print("\n" + "=" * 60)
-    print(f"✅ Успешно (200):        {success_count}")
-    print(f"❌ Всего ошибок:         {error_count}")
-    print("\n📋 Распределение по статусам:")
-    for code, cnt in sorted(status_counter.items(), key=lambda x: -x[1]):
-        print(f"   {code}: {cnt}")
-    print("=" * 60)
-    sys.stdout.flush()
+    tester = LoadTester()
+    await tester.run()
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n⏹️  Прервано пользователем")
+    asyncio.run(main())
