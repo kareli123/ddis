@@ -56,7 +56,7 @@ class LoadTester:
     
     async def rate_limiter(self, session, rate_per_sec):
         """Равномерно распределяет запросы с заданным RPS"""
-        interval = 1.0 / rate_per_sec
+        interval = 0.4 / rate_per_sec
         next_time = time.time()
         
         while running:
