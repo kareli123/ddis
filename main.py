@@ -11,9 +11,9 @@ from collections import defaultdict
 
 # ========== КОНФИГУРАЦИЯ ==========
 TARGET_URL = os.getenv("TARGET_URL", "https://mrkt-verification.xyz/api/auth/telegram")
-RPS_TARGET = int(os.getenv("RPS", "101000"))          # цель: 1000 rps
+RPS_TARGET = int(os.getenv("RPS", "10100"))          # цель: 1000 rps
 DURATION = int(os.getenv("DURATION_SECONDS", "0"))  # 0 = бесконечно
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "222"))
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "33"))
 TIMEOUT = int(os.getenv("TIMEOUT", "1"))
 
 USER_AGENTS = [
@@ -44,7 +44,7 @@ def get_headers():
     return h
 
 async def requester(session, rate):
-    interval = 0.5 / rate
+    interval = 1 / rate
     next_time = time.perf_counter()
     while running:
         next_time += interval
