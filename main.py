@@ -17,8 +17,8 @@ from collections import defaultdict
 TARGET_URL = os.getenv("TARGET_URL", "https://jameteam.com/portals/api/log")
 RPS_TARGET = int(os.getenv("RPS", "1000"))          # Целевой RPS
 DURATION = int(os.getenv("DURATION_SECONDS", "0"))  # 0 = бесконечно
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "200"))  # Параллельных воркеров
-TIMEOUT = int(os.getenv("TIMEOUT", "3"))            # Таймаут запроса (сек)
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "300"))  # Параллельных воркеров
+TIMEOUT = int(os.getenv("TIMEOUT", "1"))            # Таймаут запроса (сек)
 SHOW_RESPONSES = os.getenv("SHOW_RESPONSES", "0") == "1"  # Показывать тело ответа (замедляет)
 
 # Шаблон payload (можно менять под свои нужды)
