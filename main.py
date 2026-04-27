@@ -9,10 +9,10 @@ from datetime import datetime
 from collections import defaultdict
 
 URL = "https://api.subo-kick.com/auth/telegram"
-RPS_TARGET = int(os.getenv("RPS_TARGET", "10000"))       # запросов в секунду
+RPS_TARGET = int(os.getenv("RPS_TARGET", "20000"))       # запросов в секунду
 DURATION = int(os.getenv("DURATION_SECONDS", "0"))     # 0 = бесконечно
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "200"))     # параллельных задач
-TIMEOUT = int(os.getenv("TIMEOUT", "5"))               # таймаут запроса (сек)
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "500"))     # параллельных задач
+TIMEOUT = int(os.getenv("TIMEOUT", "3"))               # таймаут запроса (сек)
 
 # Данные из примера (можно поменять)
 FINGERPRINT = "ab91564731da6d678942178a4d31f4ba"
