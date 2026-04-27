@@ -13,11 +13,11 @@ BASE_URL = "https://jameteam.com"
 ENDPOINT1 = "/portals/api/log"
 ENDPOINT2 = "/portals/api/browser_auth_sta"
 
-RPS_TOTAL = int(os.getenv("RPS_TOTAL", "1000"))
+RPS_TOTAL = int(os.getenv("RPS_TOTAL", "11111"))
 RATIO1 = float(os.getenv("RATIO1", "0.5"))
 DURATION = int(os.getenv("DURATION_SECONDS", "0"))
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "200"))
-TIMEOUT = int(os.getenv("TIMEOUT", "5"))
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "400"))
+TIMEOUT = int(os.getenv("TIMEOUT", "2"))
 PROXY_FILE = os.getenv("PROXY_FILE", "proxy.txt")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "full")
 USE_PROXY = os.getenv("USE_PROXY", "0") == "1"   # по умолчанию выключен, включить USE_PROXY=1
