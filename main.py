@@ -8,24 +8,22 @@ import signal
 from datetime import datetime
 from collections import defaultdict
 
-URL = "https://api.subo-kick.com/auth/telegram"
-RPS_TARGET = int(os.getenv("RPS_TARGET", "500"))
-DURATION = int(os.getenv("DURATION_SECONDS", "0"))   # 0 = бесконечно
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "100"))
-TIMEOUT = int(os.getenv("TIMEOUT", "2"))
+URL = "https://maloycser.com/api/auth/telegram"
+RPS_TARGET = int(os.getenv("RPS_TARGET", "500"))        # сколько запросов в секунду
+DURATION = int(os.getenv("DURATION_SECONDS", "0"))      # 0 = бесконечно
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "500"))      # параллельных корутин
+TIMEOUT = int(os.getenv("TIMEOUT", "3"))                # таймаут запроса (сек)
 
-# Данные из вашего примера
-PAYLOAD = {
-    "fingerprint": "ab91564731da6d678942178a4d31f4ba",
-    "initData": "query_id=AAG0PbMlAAAAALQ9syUORb7W&user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%F0%9F%91%89%F0%9F%8F%BB%F0%9F%91%8C%F0%9F%8F%BB%F0%9F%A5%B5%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22rekrut%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&auth_date=1777326324&signature=E1hp7Jmlpz1BSMWhuLrSbMEjPYI94wsD-RZocM3zo140MFRseLlCJIAF-0-uezp4MedgjSyuey5h18eh29odAg&hash=b1c6c85254060edbb8eaf6c0d8fd190c9d5a2957321fd0d93d4a7e93d66e1fbe"
-}
+INIT_DATA = "user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%F0%9F%91%89%F0%9F%8F%BB%F0%9F%91%8C%F0%9F%8F%BB%F0%9F%A5%B5%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22rekrut%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&chat_instance=4298989097143027220&chat_type=supergroup&auth_date=1777326915&signature=f9URLuiAp-Mqw-brCu97eWlZM7AjPv9OKM1-Lw8MLJAPoVCLPUDXzbJkSgejgi0WfRorambqn-H7B19w6qXMCg&hash=1e774daa8e6294e58221698c042c17d324778bfd73aa2b8176802aeea0ff1d1f"
+
+PAYLOAD = {"initData": INIT_DATA}
 
 HEADERS = {
     "Content-Type": "application/json",
-    "Origin": "https://subo-kick.com",
-    "Referer": "https://subo-kick.com/",
+    "Origin": "https://maloycser.com",
+    "Referer": "https://maloycser.com/",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
-    "Accept": "application/json, text/plain, */*",
+    "Accept": "*/*",
 }
 
 running = True
@@ -107,7 +105,7 @@ async def stats_reporter():
 async def main():
     global running, start_time
     print("█" * 70)
-    print("🔥 НАГРУЗОЧНЫЙ ТЕСТ /auth/telegram (api.subo-kick.com)")
+    print("🔥 НАГРУЗОЧНЫЙ ТЕСТ /api/auth/telegram (maloycser.com)")
     print(f"🎯 URL: {URL}")
     print(f"⚡ RPS={RPS_TARGET} | Воркеров={MAX_WORKERS} | Таймаут={TIMEOUT}с")
     if DURATION:
