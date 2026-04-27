@@ -16,7 +16,7 @@ TIMEOUT = int(os.getenv("TIMEOUT", "3"))               # таймаут запр
 
 # Данные из примера (можно поменять)
 FINGERPRINT = "ab91564731da6d678942178a4d31f4ba"
-INIT_DATA = "query_id=AAGLTv4FBAAAAItO_gVBAHaw&user=%7B%22id%22%3A8690486923%2C%22first_name%22%3A%22Clarence%22%2C%22last_name%22%3A%22Reilly%22%2C%22username%22%3A%22financeboq%22%2C%22language_code%22%3A%22ru%22%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2FQ-eTjTU3Fe8OvA9TZRtCnHdyxX2qI1mjMx9xMUrLksbnVZZ8NnR2JnppNA8X_0AG.svg%22%7D&auth_date=1777328168&signature=Q2nGHItyiALMDrAdjfe3znLBevdWlvSLoIQ3pfiW1YRasFU7Du9iXYi1na54CQcjzgtDCDv1u1Cs0Lx_WhwTAQ&hash=47e3abd884084dd1a0fa8a0744bd0f3f1b7365c7161a63fd70e8d680a7e9ecb1"
+INIT_DATA = "query_id=AAGLTv4FBAAAAItO_gXLRsg2&user=%7B%22id%22%3A8690486923%2C%22first_name%22%3A%22Clarence%22%2C%22last_name%22%3A%22Reilly%22%2C%22username%22%3A%22financeboq%22%2C%22language_code%22%3A%22ru%22%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2FQ-eTjTU3Fe8OvA9TZRtCnHdyxX2qI1mjMx9xMUrLksbnVZZ8NnR2JnppNA8X_0AG.svg%22%7D&auth_date=1777329444&signature=RGYk54CmTk0vlqOh_C98YKFA0AViAY9H54LrmKrSfkQ_LSLJuq8-gV6TyKGF3_9H2M3Klr8RiiMY4MoH3C-9Dw&hash=8db153c9cab4e8e3cec0ec0aaedfa8ee6d7ce9e4bf84d8f9091adba9a9c1cb7a"
 
 PAYLOAD = {
     "fingerprint": FINGERPRINT,
