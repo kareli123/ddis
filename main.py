@@ -6,7 +6,7 @@ from aiohttp import TCPConnector
 
 # Твои данные
 FINGERPRINT = "ab91564731da6d678942178a4d31f4ba"
-INIT_DATA = "user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%40rekrut%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22rekrut%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&chat_instance=-1500624000961944755&chat_type=sender&auth_date=1777329916&signature=z29Zfu7xR5E0adU7_momtLqkeER8Gw8I8nPXi-H-FoJYJ7fOHC4_1VnEVAwJvCoo8IJT7M5KbENe1TU92RnYBQ&hash=d09e3f415fe69d50b88a3201e970bd5db05815d4087bc69f6281cb2c97b8613a"
+INIT_DATA = "query_id=AAG0PbMlAAAAALQ9syUBa3Gb&user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%40rekrut%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22rekrut%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&auth_date=1777330705&signature=VxvGpvXZg_U8JpnzlCssbu1PXXkuUgQvre9nGkbf-2mZvD-INneY6scGheCdjcUSUzdxGmCCUXBIfr_fT-dYCg&hash=70e441135030b1ccf186664158b43d6f8de92ee4d4d2d67a63b6c1ffdfd6481b"
 
 URL = "https://api.subo-kick.com/auth/telegram"
 
