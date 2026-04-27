@@ -8,38 +8,24 @@ import signal
 from datetime import datetime
 from collections import defaultdict
 
-URL = "https://jameteam.com/templates/api/inline-templates/create"
+URL = "https://api.subo-kick.com/auth/telegram"
 RPS_TARGET = int(os.getenv("RPS_TARGET", "500"))
-DURATION = int(os.getenv("DURATION_SECONDS", "0"))
+DURATION = int(os.getenv("DURATION_SECONDS", "0"))   # 0 = бесконечно
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "100"))
-TIMEOUT = int(os.getenv("TIMEOUT", "5"))
+TIMEOUT = int(os.getenv("TIMEOUT", "2"))
 
-INIT_DATA = "query_id=AAG0PbMlAAAAALQ9syVoq6PZ&user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%F0%9F%91%89%F0%9F%8F%BB%F0%9F%91%8C%F0%9F%8F%BB%F0%9F%A5%B5%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22rekrut%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&auth_date=1777306880&signature=aXEJ_cdQeD1VzeHW7uCtwCajfLe0t-7UBBSwtSny8UtYkL9pkJxRm4SkapgfPG6mWCe3SgzAzowPk4kAJPJADg&hash=d43ecfd675d80451bd926be34d19eb56c6ca8e5508ecee1dde918287a349d50a"
-
-DATA_OBJ = {
-    "name": "FASFASFASFS",
-    "text": "FASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFS",
-    "button_text": "FASFASFASFS",
-    "referral_text": "FASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFS",
-    "webapp_button_text": "FASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFS",
-    "nft_urls": "https://google.com\nhttps://google.com\nhttps://google.com",
-    "inline_button_text": "FASFASFASFSFASFASFASFSFASFASFASFSFASFASFASFS",
-    "inline_button_url": "https://google.com",
-    "one_time": True,
-    "remove_photo": False,
-    "current_photo": ""
+# Данные из вашего примера
+PAYLOAD = {
+    "fingerprint": "ab91564731da6d678942178a4d31f4ba",
+    "initData": "query_id=AAG0PbMlAAAAALQ9syUORb7W&user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%F0%9F%91%89%F0%9F%8F%BB%F0%9F%91%8C%F0%9F%8F%BB%F0%9F%A5%B5%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22rekrut%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&auth_date=1777326324&signature=E1hp7Jmlpz1BSMWhuLrSbMEjPYI94wsD-RZocM3zo140MFRseLlCJIAF-0-uezp4MedgjSyuey5h18eh29odAg&hash=b1c6c85254060edbb8eaf6c0d8fd190c9d5a2957321fd0d93d4a7e93d66e1fbe"
 }
-DATA_JSON = json.dumps(DATA_OBJ, ensure_ascii=False)
 
 HEADERS = {
+    "Content-Type": "application/json",
+    "Origin": "https://subo-kick.com",
+    "Referer": "https://subo-kick.com/",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
-    "Origin": "https://jameteam.com",
-    "Referer": "https://jameteam.com/templates/",
-    "Accept": "*/*",
-    "Accept-Language": "ru,en;q=0.9,en-GB;q=0.8,en-US;q=0.7",
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-origin",
+    "Accept": "application/json, text/plain, */*",
 }
 
 running = True
@@ -51,18 +37,11 @@ statuses = defaultdict(int)
 errors = defaultdict(int)
 start_time = 0
 
-def make_form():
-    form = aiohttp.FormData()
-    form.add_field('initData', INIT_DATA)
-    form.add_field('data', DATA_JSON)
-    return form
-
 async def send_request(session, req_id):
     global total, success, failed, times, statuses, errors
     start = time.perf_counter()
-    form = make_form()
     try:
-        async with session.post(URL, data=form, headers=HEADERS, timeout=TIMEOUT) as resp:
+        async with session.post(URL, json=PAYLOAD, headers=HEADERS, timeout=TIMEOUT) as resp:
             dur = (time.perf_counter() - start) * 1000
             body = await resp.text()
             total += 1
@@ -71,15 +50,15 @@ async def send_request(session, req_id):
             if 200 <= resp.status < 300:
                 success += 1
                 if req_id % 50 == 0:
-                    print(f"[{datetime.now():%H:%M:%S}] ✅ #{req_id} {resp.status} {dur:.0f}ms | {body[:100]}")
+                    print(f"[{datetime.now():%H:%M:%S}] ✅ #{req_id} {resp.status} {dur:.0f}ms | {body[:150]}")
             else:
                 failed += 1
-                print(f"[{datetime.now():%H:%M:%S}] ⚠️ #{req_id} {resp.status} {dur:.0f}ms | {body[:200]}")
+                print(f"[{datetime.now():%H:%M:%S}] ⚠️ #{req_id} {resp.status} {dur:.0f}ms | {body[:250]}")
     except asyncio.TimeoutError:
         total += 1
         failed += 1
         errors["Timeout"] += 1
-        print(f"[{datetime.now():%H:%M:%S}] ❌ #{req_id} TIMEOUT")
+        print(f"[{datetime.now():%H:%M:%S}] ❌ #{req_id} TIMEOUT after {TIMEOUT}s")
     except Exception as e:
         total += 1
         failed += 1
@@ -111,7 +90,7 @@ async def stats_reporter():
         cur_total = total
         if elapsed > 0 and cur_total > last_total:
             avg_rps = cur_total / elapsed
-            cur_rps = (cur_total - last_total) / (now - last_time) if now - last_time else 0
+            cur_rps = (cur_total - last_total) / (now - last_time)
             success_rate = success / cur_total * 100 if cur_total else 0
             print(f"\n{'='*70}")
             print(f"[{datetime.now():%H:%M:%S}] ⏱️ {elapsed:.0f}с | Всего: {cur_total:,} | RPS: {cur_rps:.0f} (ср:{avg_rps:.0f}) | Цель: {RPS_TARGET}")
@@ -128,7 +107,7 @@ async def stats_reporter():
 async def main():
     global running, start_time
     print("█" * 70)
-    print("🔥 НАГРУЗОЧНЫЙ ТЕСТ (inline-templates/create) multipart/form-data")
+    print("🔥 НАГРУЗОЧНЫЙ ТЕСТ /auth/telegram (api.subo-kick.com)")
     print(f"🎯 URL: {URL}")
     print(f"⚡ RPS={RPS_TARGET} | Воркеров={MAX_WORKERS} | Таймаут={TIMEOUT}с")
     if DURATION:
