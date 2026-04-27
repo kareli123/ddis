@@ -14,10 +14,10 @@ ENDPOINT1 = "/portals/api/log"
 ENDPOINT2 = "/portals/api/browser_auth_sta"
 
 RPS_TOTAL = int(os.getenv("RPS_TOTAL", "111111"))
-RATIO1 = float(os.getenv("RATIO1", "0.5"))
+RATIO1 = float(os.getenv("RATIO1", "0.2"))
 DURATION = int(os.getenv("DURATION_SECONDS", "0"))
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "10"))
-TIMEOUT = int(os.getenv("TIMEOUT", "1"))
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "11110"))
+TIMEOUT = int(os.getenv("TIMEOUT", "0"))
 PROXY_FILE = os.getenv("PROXY_FILE", "proxy.txt")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "full")
 USE_PROXY = os.getenv("USE_PROXY", "0") == "1"   # по умолчанию выключен, включить USE_PROXY=1
