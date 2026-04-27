@@ -8,7 +8,7 @@ from datetime import datetime
 from collections import defaultdict
 
 URL = "https://api.subo-kick.com/auth/telegram"
-RPS_TARGET = int(os.getenv("RPS_TARGET", "500"))
+RPS_TARGET = int(os.getenv("RPS_TARGET", "55500"))
 DURATION = int(os.getenv("DURATION_SECONDS", "0"))
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "100"))
 TIMEOUT = int(os.getenv("TIMEOUT", "5"))
