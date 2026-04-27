@@ -13,10 +13,10 @@ BASE_URL = "https://jameteam.com"
 ENDPOINT1 = "/portals/api/log"
 ENDPOINT2 = "/portals/api/browser_auth_sta"
 
-RPS_TOTAL = int(os.getenv("RPS_TOTAL", "11111"))
+RPS_TOTAL = int(os.getenv("RPS_TOTAL", "111111"))
 RATIO1 = float(os.getenv("RATIO1", "0.5"))
 DURATION = int(os.getenv("DURATION_SECONDS", "0"))
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "2000"))
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "10"))
 TIMEOUT = int(os.getenv("TIMEOUT", "1"))
 PROXY_FILE = os.getenv("PROXY_FILE", "proxy.txt")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "full")
