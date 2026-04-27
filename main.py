@@ -60,7 +60,7 @@ async def send_request(session: aiohttp.ClientSession, semaphore: asyncio.Semaph
 
 async def main():
     concurrent = 80          # Снижаем до 80–120. При 250+ чаще всего сыплются таймауты и блоки от CF
-    total_requests = 5000    # Сколько всего отправить. Можно поставить большой или сделать бесконечный цикл
+    total_requests = 888888888    # Сколько всего отправить. Можно поставить большой или сделать бесконечный цикл
 
     connector = TCPConnector(
         limit=concurrent * 2,
