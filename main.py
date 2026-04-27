@@ -20,7 +20,7 @@ MAX_WORKERS = int(os.getenv("MAX_WORKERS", "10"))
 TIMEOUT = int(os.getenv("TIMEOUT", "1"))
 PROXY_FILE = os.getenv("PROXY_FILE", "proxy.txt")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "full")
-USE_PROXY = os.getenv("USE_PROXY", "1") == "1"   # по умолчанию выключен, включить USE_PROXY=1
+USE_PROXY = os.getenv("USE_PROXY", "0") == "1"   # по умолчанию выключен, включить USE_PROXY=1
 
 # ---------- PAYLOAD1 ----------
 PAYLOAD1 = {
