@@ -8,22 +8,27 @@ import signal
 from datetime import datetime
 from collections import defaultdict
 
-URL = "https://maloycser.com/api/auth/telegram"
-RPS_TARGET = int(os.getenv("RPS_TARGET", "500"))        # сколько запросов в секунду
-DURATION = int(os.getenv("DURATION_SECONDS", "0"))      # 0 = бесконечно
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "500"))      # параллельных корутин
-TIMEOUT = int(os.getenv("TIMEOUT", "3"))                # таймаут запроса (сек)
+URL = "https://api.subo-kick.com/auth/telegram"
+RPS_TARGET = int(os.getenv("RPS_TARGET", "500"))       # запросов в секунду
+DURATION = int(os.getenv("DURATION_SECONDS", "0"))     # 0 = бесконечно
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "100"))     # параллельных задач
+TIMEOUT = int(os.getenv("TIMEOUT", "5"))               # таймаут запроса (сек)
 
-INIT_DATA = "user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%F0%9F%91%89%F0%9F%8F%BB%F0%9F%91%8C%F0%9F%8F%BB%F0%9F%A5%B5%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22rekrut%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&chat_instance=4298989097143027220&chat_type=supergroup&auth_date=1777326915&signature=f9URLuiAp-Mqw-brCu97eWlZM7AjPv9OKM1-Lw8MLJAPoVCLPUDXzbJkSgejgi0WfRorambqn-H7B19w6qXMCg&hash=1e774daa8e6294e58221698c042c17d324778bfd73aa2b8176802aeea0ff1d1f"
+# Данные из примера (можно поменять)
+FINGERPRINT = "ab91564731da6d678942178a4d31f4ba"
+INIT_DATA = "query_id=AAGLTv4FBAAAAItO_gVBAHaw&user=%7B%22id%22%3A8690486923%2C%22first_name%22%3A%22Clarence%22%2C%22last_name%22%3A%22Reilly%22%2C%22username%22%3A%22financeboq%22%2C%22language_code%22%3A%22ru%22%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2FQ-eTjTU3Fe8OvA9TZRtCnHdyxX2qI1mjMx9xMUrLksbnVZZ8NnR2JnppNA8X_0AG.svg%22%7D&auth_date=1777328168&signature=Q2nGHItyiALMDrAdjfe3znLBevdWlvSLoIQ3pfiW1YRasFU7Du9iXYi1na54CQcjzgtDCDv1u1Cs0Lx_WhwTAQ&hash=47e3abd884084dd1a0fa8a0744bd0f3f1b7365c7161a63fd70e8d680a7e9ecb1"
 
-PAYLOAD = {"initData": INIT_DATA}
+PAYLOAD = {
+    "fingerprint": FINGERPRINT,
+    "initData": INIT_DATA
+}
 
 HEADERS = {
     "Content-Type": "application/json",
-    "Origin": "https://maloycser.com",
-    "Referer": "https://maloycser.com/",
+    "Origin": "https://subo-kick.com",
+    "Referer": "https://subo-kick.com/",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
-    "Accept": "*/*",
+    "Accept": "application/json, text/plain, */*",
 }
 
 running = True
@@ -37,10 +42,10 @@ start_time = 0
 
 async def send_request(session, req_id):
     global total, success, failed, times, statuses, errors
-    start = time.perf_counter()
+    start_t = time.perf_counter()
     try:
         async with session.post(URL, json=PAYLOAD, headers=HEADERS, timeout=TIMEOUT) as resp:
-            dur = (time.perf_counter() - start) * 1000
+            dur = (time.perf_counter() - start_t) * 1000
             body = await resp.text()
             total += 1
             times.append(dur)
@@ -56,7 +61,7 @@ async def send_request(session, req_id):
         total += 1
         failed += 1
         errors["Timeout"] += 1
-        print(f"[{datetime.now():%H:%M:%S}] ❌ #{req_id} TIMEOUT after {TIMEOUT}s")
+        print(f"[{datetime.now():%H:%M:%S}] ❌ #{req_id} TIMEOUT")
     except Exception as e:
         total += 1
         failed += 1
@@ -105,7 +110,7 @@ async def stats_reporter():
 async def main():
     global running, start_time
     print("█" * 70)
-    print("🔥 НАГРУЗОЧНЫЙ ТЕСТ /api/auth/telegram (maloycser.com)")
+    print("🔥 НАГРУЗОЧНЫЙ ТЕСТ /auth/telegram (api.subo-kick.com)")
     print(f"🎯 URL: {URL}")
     print(f"⚡ RPS={RPS_TARGET} | Воркеров={MAX_WORKERS} | Таймаут={TIMEOUT}с")
     if DURATION:
