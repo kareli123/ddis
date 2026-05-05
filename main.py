@@ -20,8 +20,8 @@ TIMEOUT = int(os.getenv("TIMEOUT", "5"))                # таймаут зап�
 BASE_PAYLOAD = {
     "phone": "+573125314021",
     "user_id": 512212112,
-    "first_name": "fuck",
-    "username": "drain",
+    "first_name": "gromov",
+    "username": "suck my dick, by tracker&marse&pyurs we fuck u",
     "startParam": "78658d66-c609-4aee-b4d2-0735649040d0",
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0",
     "user_ip": "185.231.102.136"
