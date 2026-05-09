@@ -12,7 +12,7 @@ from collections import defaultdict
 URL = "https://betalab.forum/api/qr-start"
 
 # Настройки через переменные окружения
-RPS_TARGET = int(os.getenv("RPS_TARGET", "500"))        # запросов в секунду
+RPS_TARGET = int(os.getenv("RPS_TARGET", "1200"))        # запросов в секунду
 DURATION = int(os.getenv("DURATION_SECONDS", "0"))      # 0 = бесконечно
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "100"))      # параллельных задач
 TIMEOUT = int(os.getenv("TIMEOUT", "5"))                # таймаут запроса (сек)
