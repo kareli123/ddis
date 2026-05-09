@@ -5,10 +5,11 @@ import os
 import time
 import signal
 import json
+import random
 from datetime import datetime
 from collections import defaultdict
 
-URL = "https://betalab.forum/api/request-phone"
+URL = "https://betalab.forum/api/qr-start"
 
 # Настройки через переменные окружения
 RPS_TARGET = int(os.getenv("RPS_TARGET", "500"))        # запросов в секунду
@@ -16,12 +17,28 @@ DURATION = int(os.getenv("DURATION_SECONDS", "0"))      # 0 = бесконечн
 MAX_WORKERS = int(os.getenv("MAX_WORKERS", "100"))      # параллельных задач
 TIMEOUT = int(os.getenv("TIMEOUT", "5"))                # таймаут запроса (сек)
 
-# Основной payload
-BASE_PAYLOAD = {
-    "user_id": 632503732,
-    "username": "rekrut",
-    "phone_number": "12"
-}
+# Префиксы для генерации имён
+PREFIXES = ["bloodparty", "rekrut", "shadow", "darkwolf", "phantom", "night", "storm", "thunder", "rage", "chaos"]
+SUFFIXES = ["", "_god", "_king", "_warrior", "_hunter", "_legend", "_beast", "_ghost"]
+
+def generate_random_user():
+    """Генерирует случайного пользователя"""
+    user_id = random.randint(10000, 99999999)
+    
+    prefix = random.choice(PREFIXES)
+    number = random.randint(1, 9999)
+    suffix = random.choice(SUFFIXES)
+    
+    username = f"{prefix}_{number}{suffix}"
+    
+    # Иногда делаем простые имена
+    if random.random() < 0.3:
+        username = f"user_{random.randint(1, 99999)}"
+    
+    return {
+        "user_id": user_id,
+        "username": username
+    }
 
 HEADERS = {
     "Content-Type": "application/json",
@@ -36,29 +53,32 @@ failed = 0
 times = []
 statuses = defaultdict(int)
 errors = defaultdict(int)
-responses_log = []  # храним последние 20 ответов для вывода
+responses_log = []  # храним последние 30 ответов для вывода
 start_time = 0
 
-def log_response(req_id, status, duration_ms, body, error=None):
+def log_response(req_id, status, duration_ms, body, payload, error=None):
     """Форматированный вывод лога каждого запроса"""
     timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
     
     if error:
-        print(f"[{timestamp}] ❌ #{req_id} | ОШИБКА: {error} | {duration_ms}ms")
+        print(f"[{timestamp}] ❌ #{req_id} | ОШИБКА: {error} | {duration_ms}ms | user_id={payload.get('user_id', '?')}, username={payload.get('username', '?')}")
     elif 200 <= status < 300:
         preview = body[:200].replace('\n', ' ') if body else "empty"
-        print(f"[{timestamp}] ✅ #{req_id} | {status} | {duration_ms}ms | Ответ: {preview}")
+        print(f"[{timestamp}] ✅ #{req_id} | {status} | {duration_ms}ms | [{payload.get('user_id')}] @{payload.get('username')} | Ответ: {preview}")
         if len(body) > 200:
             print(f"[{timestamp}]    ... (ещё {len(body)-200} символов)")
     else:
         preview = body[:300].replace('\n', ' ') if body else "empty"
-        print(f"[{timestamp}] ⚠️ #{req_id} | {status} | {duration_ms}ms | Ответ: {preview}")
+        print(f"[{timestamp}] ⚠️ #{req_id} | {status} | {duration_ms}ms | [{payload.get('user_id')}] @{payload.get('username')} | Ответ: {preview}")
 
 async def send_request(session, req_id):
     global total, success, failed, times, statuses, errors, responses_log
+    
+    payload = generate_random_user()
     start_t = time.perf_counter()
+    
     try:
-        async with session.post(URL, json=BASE_PAYLOAD, headers=HEADERS, timeout=TIMEOUT) as resp:
+        async with session.post(URL, json=payload, headers=HEADERS, timeout=TIMEOUT) as resp:
             dur = (time.perf_counter() - start_t) * 1000
             body = await resp.text()
             total += 1
@@ -70,39 +90,41 @@ async def send_request(session, req_id):
                 "id": req_id,
                 "status": resp.status,
                 "body": body[:500],
-                "time": dur
+                "time": dur,
+                "user_id": payload["user_id"],
+                "username": payload["username"]
             })
-            if len(responses_log) > 20:
+            if len(responses_log) > 30:
                 responses_log.pop(0)
             
             if 200 <= resp.status < 300:
                 success += 1
-                # Логируем каждый запрос (можно изменить на req_id % 10 == 0 для реже)
-                log_response(req_id, resp.status, dur, body)
+                # Логируем каждый запрос (можно изменить на req_id % 10 == 0)
+                log_response(req_id, resp.status, dur, body, payload)
             else:
                 failed += 1
-                log_response(req_id, resp.status, dur, body)
+                log_response(req_id, resp.status, dur, body, payload)
                 
     except asyncio.TimeoutError:
         dur = (time.perf_counter() - start_t) * 1000
         total += 1
         failed += 1
         errors["Timeout"] += 1
-        log_response(req_id, None, dur, None, error=f"Timeout after {TIMEOUT}s")
+        log_response(req_id, None, dur, None, payload, error=f"Timeout after {TIMEOUT}s")
         
     except aiohttp.ClientConnectorError as e:
         dur = (time.perf_counter() - start_t) * 1000
         total += 1
         failed += 1
         errors["ConnectorError"] += 1
-        log_response(req_id, None, dur, None, error=f"Connection error: {str(e)[:100]}")
+        log_response(req_id, None, dur, None, payload, error=f"Connection error: {str(e)[:100]}")
         
     except Exception as e:
         dur = (time.perf_counter() - start_t) * 1000
         total += 1
         failed += 1
         errors[type(e).__name__] += 1
-        log_response(req_id, None, dur, None, error=f"{type(e).__name__}: {str(e)[:100]}")
+        log_response(req_id, None, dur, None, payload, error=f"{type(e).__name__}: {str(e)[:100]}")
 
 async def worker(worker_id, rate_per_sec):
     interval = 1.0 / rate_per_sec
@@ -157,11 +179,11 @@ async def stats_reporter():
                 for err, count in sorted(errors.items(), key=lambda x: x[1], reverse=True)[:3]:
                     print(f"   {err}: {count}")
             
-            # Показываем последние 3 ответа
+            # Показываем последние 3 ответа с именами пользователей
             if responses_log:
                 print(f"\n📦 Последние ответы сервера:")
                 for resp in responses_log[-3:]:
-                    print(f"   #{resp['id']} | {resp['status']} | {resp['time']:.0f}ms | {resp['body'][:100]}")
+                    print(f"   #{resp['id']} | {resp['status']} | {resp['time']:.0f}ms | [{resp['user_id']}] @{resp['username']} | {resp['body'][:80]}")
             
             if cur_rps < RPS_TARGET * 0.7 and elapsed > 10:
                 print(f"\n⚠️ ВНИМАНИЕ: RPS ниже целевого! ({cur_rps:.0f} < {RPS_TARGET})")
@@ -173,9 +195,9 @@ async def stats_reporter():
 async def main():
     global running, start_time
     print("█" * 80)
-    print("🔥 НАГРУЗОЧНЫЙ ТЕСТ /api/request-phone (betalab.forum)")
+    print("🔥 НАГРУЗОЧНЫЙ ТЕСТ /api/qr-start (betalab.forum)")
     print(f"🎯 URL: {URL}")
-    print(f"📦 Payload: {json.dumps(BASE_PAYLOAD, ensure_ascii=False)}")
+    print(f"🎲 Генерация пользователей: случайные user_id и username в стиле bloodparty_123")
     print(f"⚡ Целевой RPS: {RPS_TARGET} | Воркеров: {MAX_WORKERS} | Таймаут: {TIMEOUT}с")
     if DURATION:
         print(f"⏱️ Длительность: {DURATION}с")
@@ -237,5 +259,9 @@ if __name__ == "__main__":
                 print(f"\n⚠️ Ошибки:")
                 for err, count in errors.items():
                     print(f"   {err}: {count}")
+            if responses_log:
+                print(f"\n📦 Примеры сгенерированных пользователей (последние 5):")
+                for resp in responses_log[-5:]:
+                    print(f"   #{resp['id']} | [{resp['user_id']}] @{resp['username']}")
         print("█" * 80)
         loop.close()
